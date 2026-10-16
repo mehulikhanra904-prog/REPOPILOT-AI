@@ -350,6 +350,16 @@ def normalize_scores(result: Any) -> dict[str, Any]:
     return scores
 
 
+def primary_language(result: Any) -> str:
+    """Return a display-safe primary language from any analyzer response shape."""
+    languages = get_value(result, "languages", default={})
+    if isinstance(languages, dict):
+        return str(next(iter(languages), "—"))
+    if isinstance(languages, (list, tuple)):
+        return str(languages[0]) if languages else "—"
+    return str(languages) if languages else "—"
+
+
 def finding_category(finding: Any) -> str:
     return finding_text(finding, "type", finding_text(finding, "category", "Other")).replace("_", " ").title()
 
@@ -575,7 +585,7 @@ def render_dashboard(result: Any, repo_url: str) -> None:
 
     meta_cols = st.columns(4)
     overview_items = [
-        ("Language", get_value(metadata, "language", "primary_language", default=(next(iter(get_value(result, "languages", default={}), "—")) if get_value(result, "languages", default={}) else "—"))),
+        ("Language", get_value(metadata, "language", "primary_language", default=primary_language(result))),
         ("Files analyzed", get_value(get_value(result, "limits", default={}), "files_seen", default=get_value(metadata, "files", "file_count", default="—"))),
         ("Open findings", len(findings)),
         ("Default branch", get_value(metadata, "default_branch", "branch", default="—")),

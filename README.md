@@ -247,9 +247,9 @@ REPOPILOT-AI/
 
 The Streamlit sign-in experience is **local demo authentication only**:
 
-- Accounts live in Streamlit session state.
+- Accounts live in a process-local Streamlit resource shared across browser sessions.
 - Passwords are salted and hashed with PBKDF2-HMAC-SHA256.
-- Accounts and sessions disappear when the app session/process ends.
+- Accounts disappear when the app process restarts or redeploys.
 - There is no database, account recovery, email verification, durable session, or identity provider.
 
 Do not use this flow to protect sensitive data or present it as production security.

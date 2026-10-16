@@ -27,6 +27,12 @@ ROOT = Path(__file__).parent
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+@st.cache_resource(show_spinner=False)
+def get_auth_users() -> dict[str, dict[str, str]]:
+    """Return the process-local demo account store shared by Streamlit sessions."""
+    return {}
+
+
 def inject_styles() -> None:
     css_path = ROOT / "styles.css"
     if css_path.exists():
@@ -50,6 +56,8 @@ def render_auth() -> bool:
     if st.session_state.get("auth_user"):
         return True
 
+    auth_users = get_auth_users()
+
     left, center, right = st.columns([1, 1.4, 1])
     with center:
         st.markdown('<div class="auth-mark">RP</div>', unsafe_allow_html=True)
@@ -67,11 +75,11 @@ def render_auth() -> bool:
                     password = st.text_input("Password", type="default" if show_password else "password")
                     submitted = st.form_submit_button("Sign in", type="primary", width="stretch", icon=":material/login:")
                 if submitted:
-                    account = st.session_state.auth_users.get(email.strip().lower())
+                    account = auth_users.get(email.strip().lower())
                     if account and passwords_match(password, account):
                         st.session_state.auth_user = email.strip().lower()
                         st.rerun()
-                    st.error("That email and password combination was not found in this session.")
+                    st.error("We couldn't sign you in. Check your email and password, then try again.")
             else:
                 with st.form("create_account_form", clear_on_submit=False):
                     email = st.text_input("Email", placeholder="you@example.com", key="sign_up_email")
@@ -87,14 +95,14 @@ def render_auth() -> bool:
                         st.error("Use at least 8 characters for the password.")
                     elif password != confirm:
                         st.error("Passwords do not match.")
-                    elif normalized_email in st.session_state.auth_users:
-                        st.error("An account with that email already exists in this session.")
+                    elif normalized_email in auth_users:
+                        st.error("An account with that email already exists. Use Sign in instead.")
                     else:
                         salt, digest = hash_password(password)
-                        st.session_state.auth_users[normalized_email] = {"salt": salt, "hash": digest}
+                        auth_users[normalized_email] = {"salt": salt, "hash": digest}
                         st.session_state.auth_user = normalized_email
                         st.rerun()
-        st.caption("Demo only: no account data is persisted, and this is not production security.")
+        st.caption("Demo accounts are available while this app process is running. Passwords are hashed and never stored in plaintext.")
     return False
 
 
@@ -317,8 +325,6 @@ if "result" not in st.session_state:
     st.session_state.result = None
 if "repo_url" not in st.session_state:
     st.session_state.repo_url = ""
-if "auth_users" not in st.session_state:
-    st.session_state.auth_users = {}
 if "auth_user" not in st.session_state:
     st.session_state.auth_user = None
 

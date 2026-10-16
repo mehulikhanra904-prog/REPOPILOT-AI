@@ -44,6 +44,13 @@ body,
 
 [data-testid="stHeader"] { background: transparent; }
 
+/* Quiet chrome keeps attention on the repository evidence. */
+[data-testid="stToolbar"] { opacity: 0.55; }
+[data-testid="stToolbar"]:hover { opacity: 1; }
+[data-testid="stDecoration"] { display: none; }
+
+::selection { background: rgba(213, 255, 117, 0.65); color: var(--rp-ink); }
+
 [data-testid="stSidebar"] {
   background: #182a2d;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -69,6 +76,15 @@ h1 {
 h2, h3 { color: var(--rp-ink); letter-spacing: -0.04em; }
 h3 { font-size: 1.22rem; margin: 0.1rem 0 0.4rem; }
 p { color: #405455; }
+strong { color: var(--rp-ink); }
+
+[data-testid="stMarkdownContainer"] a {
+  color: #386b5b;
+  font-weight: 650;
+  text-decoration-color: rgba(56, 107, 91, 0.35);
+  text-underline-offset: 3px;
+}
+[data-testid="stMarkdownContainer"] a:hover { color: #1f5444; }
 
 .eyebrow,
 .section-kicker,
@@ -175,6 +191,15 @@ p { color: #405455; }
   color: var(--rp-ink);
 }
 
+[data-testid="stTextInput"] input:focus,
+[data-testid="stTextArea"] textarea:focus {
+  border-color: #77ad79;
+  box-shadow: 0 0 0 3px rgba(127, 227, 191, 0.2);
+}
+
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder { color: #8b9998; }
+
 [data-testid="stVerticalBlockBorderWrapper"] {
   background: var(--rp-panel);
   border-color: var(--rp-line);
@@ -205,11 +230,42 @@ p { color: #405455; }
 .history-index { font-size: 0.9rem; }
 .stExpander { border-color: var(--rp-line); border-radius: 11px; }
 button { border-radius: 10px !important; }
+button[kind="secondary"] {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: var(--rp-line-strong);
+  color: #314847;
+}
+button[kind="secondary"]:hover {
+  background: #ffffff;
+  border-color: #7aa89a;
+  color: #183b35;
+}
 button[kind="primary"] { background: linear-gradient(135deg, #bce95d, #80d9b5); border: 0; color: #1b302a; font-weight: 760; }
 button[kind="primary"]:hover { background: linear-gradient(135deg, #d5ff75, #66d2a9); color: #152326; }
+
+[data-testid="stAlert"] {
+  border-radius: 12px;
+  border-width: 1px;
+  box-shadow: 0 8px 24px rgba(36, 54, 52, 0.04);
+}
+
+[data-testid="stStatusWidget"] {
+  border: 1px solid var(--rp-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(36, 54, 52, 0.05);
+}
+
+/* Keep long evidence readable without making cards feel dense. */
+pre {
+  background: rgba(21, 35, 38, 0.04) !important;
+  border: 1px solid var(--rp-line);
+  border-radius: 11px;
+  line-height: 1.55;
+}
 
 @media (max-width: 700px) {
   [data-testid="stMainBlockContainer"] { padding: 2.3rem 1.1rem 4rem; }
   h1 { font-size: 2.9rem; }
   .orb-one { height: 120px; right: 4%; width: 120px; }
+  [data-testid="stForm"] { padding: 0.9rem; }
 }

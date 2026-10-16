@@ -1,10 +1,8 @@
 # ✦ RepoPilot AI
 
-### **Understand any repository. Explore the code. Ship with confidence.**
+### **Understand any repository. Explore the code. Fix the right things first.**
 
-RepoPilot AI is a polished repository-intelligence workspace for developers. Paste a public GitHub URL and get an explorable map of the project’s architecture, language composition, source tree, static quality signals, recent activity, and the questions that matter.
-
-It combines a **React + Vite dashboard**, a **FastAPI backend**, GitHub’s REST API, and optional provider-neutral AI explanations — while keeping provider credentials on the server instead of in the browser.
+RepoPilot AI is an evidence-first GitHub repository investigator built with **Python** and **Streamlit**. Paste a public GitHub URL and get a focused view of the repository’s metadata, file structure, languages, framework signals, tests, configuration, likely secret patterns, health score, and prioritized findings.
 
 <p align="center">
   <a href="https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/"><strong>🌐 Live Demo</strong></a>
@@ -18,152 +16,91 @@ It combines a **React + Vite dashboard**, a **FastAPI backend**, GitHub’s REST
 
 ## 🌐 Live demo
 
-Try RepoPilot AI in your browser:
+Try the deployed Streamlit application:
 
-**[Open the RepoPilot AI live demo →](https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/)**
+**[Open RepoPilot AI →](https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/)**
 
 ---
 
 ## ✨ What RepoPilot does
 
-RepoPilot turns the first pass through an unfamiliar repository into a focused workflow:
+RepoPilot turns the first inspection of an unfamiliar repository into a repeatable workflow:
 
-1. **Paste** a GitHub repository URL.
-2. **Map** metadata, languages, files, architecture, activity, and project signals.
-3. **Explore** source files in the browser with a searchable code explorer.
-4. **Review** explainable quality insights instead of opaque scores.
-5. **Ask** repository-aware questions with optional AI assistance.
-6. **Export** a Markdown report for a handoff, review, or project record.
+1. **Paste** a public GitHub repository URL.
+2. **Inspect** bounded metadata, the default-branch tree, and project signals.
+3. **Review** an explainable health indicator and fix-first findings.
+4. **Open** architecture and file-tree evidence in the dashboard.
+5. **Download** a Markdown report for handoffs or follow-up work.
 
-Core repository analysis works without an AI provider key.
+The analyzer is read-only: it does not clone, execute, or modify the submitted repository.
 
 ---
 
-## 🎯 Product highlights
+## 🎯 Features
 
-| Area | Included |
+| Feature | Description |
 | --- | --- |
-| **Repository overview** | Stars, forks, default branch, update date, file counts, primary language, and quality score. |
-| **Architecture map** | Detected stacks, entry points, layers, documentation files, test files, and CI workflows. |
-| **Language breakdown** | GitHub language composition with visual percentage bars. |
-| **Code Explorer** | Searchable repository tree, source previews, line numbers, and file metadata. |
-| **Quality Insights** | Lightweight, explainable static signals grouped by high, medium, and low priority. |
-| **Ask RepoPilot** | Context-aware questions about the repository, architecture, stack, or selected files. |
-| **AI explanations** | Optional OpenAI-compatible or Anthropic-backed explanations through the API. |
-| **Report export** | Download a Markdown summary containing repository context, architecture, languages, quality insights, and activity. |
-| **Recent scans** | Keep the latest repository history in the browser’s local storage. |
-| **Safe defaults** | Read-only GitHub inspection; repository code is not checked out or executed. |
+| **Repository overview** | Displays the repository, default branch, primary language, files analyzed, and open findings. |
+| **Explainable health score** | Scores documentation, licensing, tests, configuration, and source signals with visible weights. |
+| **Architecture map** | Builds a bounded evidence-only directory and file tree. |
+| **Language detection** | Detects common languages from file extensions and GitHub metadata. |
+| **Framework signals** | Looks for recognizable Django, Flask, FastAPI, React, Node.js, Rust, and Go markers. |
+| **Test discovery** | Checks conventional test directories and filenames. |
+| **Configuration discovery** | Finds common project, package, container, editor, and CI configuration files. |
+| **Secret review** | Detects likely token and credential patterns while redacting values in evidence. |
+| **Prioritized findings** | Orders findings by severity and includes paths, line numbers, confidence, and limitations. |
+| **Markdown report** | Exports a report without exposing repository source contents or secret values. |
+| **Rate-limit fallback** | Uses GitHub’s public source archive when anonymous API limits are reached. |
+| **Local demo auth** | Includes a session-only sign-in/create-account gate for the local Streamlit experience. |
 
 ---
 
-## 🖥️ Screens and workflow
-
-### Welcome workspace
-
-Start with one clean repository URL field, quick-start examples, and a clear explanation of what RepoPilot can inspect without credentials.
-
-### Repository overview
-
-See the repository’s most important signals at a glance: language composition, architecture summary, file structure, quality score, recent signals, and recent commits.
-
-### Code Explorer
-
-Filter the indexed tree, open a source file, inspect its content with line numbers, and request an explanation for the active file when an AI provider is configured.
-
-### Quality Insights
-
-Review static signals by severity. Every signal is presented as a review prompt — not as a claim of perfect correctness or a full security audit.
-
-### Ask RepoPilot
-
-Ask questions using the repository map and, optionally, the currently selected source file as context. Without an external provider, the app still returns local fallback guidance.
-
----
-
-## 🧱 Architecture
+## 🧭 Analysis pipeline
 
 ```text
-┌──────────────────────────────┐
-│ React 19 + Vite dashboard     │
-│ frontend/src/App.jsx         │
-└──────────────┬───────────────┘
-               │ JSON over HTTP
-               ▼
-┌──────────────────────────────┐
-│ FastAPI service               │
-│ backend/app/main.py          │
-│                              │
-│  /api/health                 │
-│  /api/analyze                │
-│  /api/file                   │
-│  /api/explain                │
-│  /api/ask                   │
-└──────────────┬───────────────┘
-               │
-      ┌────────┴─────────┐
-      ▼                  ▼
- GitHub REST API     Optional LLM provider
+Validate GitHub URL
+        ↓
+Read repository metadata
+        ↓
+Read the default-branch file tree
+        ↓
+Inspect bounded text files
+        ↓
+Detect languages, frameworks, tests, configs, and secret patterns
+        ↓
+Build evidence-backed findings
+        ↓
+Calculate the health score
+        ↓
+Display the dashboard and Markdown report
 ```
 
-### Backend responsibilities
+### Safety boundaries
 
-- Validate and normalize GitHub repository URLs.
-- Read repository metadata, language statistics, trees, files, and commits.
-- Run bounded, explainable static quality checks.
-- Cache analyses briefly to reduce repeated GitHub requests.
-- Keep GitHub and AI credentials on the backend.
-- Provide local fallback answers when no AI provider is configured.
-
-### Frontend responsibilities
-
-- Render the repository workspace and navigation.
-- Display analysis, architecture, activity, and quality signals.
-- Fetch individual files on demand.
-- Maintain recent scan history in browser `localStorage`.
-- Export the current analysis as Markdown.
+- Only HTTPS `github.com/<owner>/<repository>` URLs are accepted.
+- Analysis is read-only and repository code is never executed.
+- At most **200 files** are inspected by default.
+- Text-file inspection is limited to **100,000 bytes per file** by default.
+- Binary files are skipped where appropriate.
+- Secret evidence is redacted before it appears in the UI or report.
+- Findings are review signals, not proof of a vulnerability or software quality.
 
 ---
 
-## 🛡️ Safety and privacy boundaries
+## 📊 Health score methodology
 
-RepoPilot is designed for inspection, not execution:
+The default score is a transparent repository-signal indicator, not a security audit:
 
-- Repository code is read through GitHub APIs; it is not cloned or run.
-- GitHub and LLM keys are read by the FastAPI backend only.
-- The browser receives analysis results and requested source content, not provider secrets.
-- Quality signals are conservative prompts for review, not proof of security or correctness.
-- The default deployment uses `LLM_PROVIDER=none`, so basic analysis does not require an AI key.
-- Public internet deployments should add authentication, quotas, and rate limiting before exposing private integrations.
+| Signal | Weight |
+| --- | ---: |
+| README / documentation | 20 |
+| License | 10 |
+| Recognized tests | 25 |
+| Project configuration | 15 |
+| Source files | 30 |
+| **Total** | **100** |
 
----
-
-## 🧰 Stack
-
-### Frontend
-
-- React 19
-- Vite 7
-- Lucide React icons
-- CSS custom design system
-
-### Backend
-
-- Python 3.14
-- FastAPI
-- Uvicorn
-- HTTPX
-- python-dotenv
-
-### Integrations
-
-- GitHub REST API
-- OpenAI-compatible providers
-- Anthropic
-- Any OpenAI-compatible endpoint through `OPENAI_BASE_URL`
-
-### Deployment
-
-- Optional single-image Docker deployment via `Dockerfile`
+The dashboard explains the score methodology alongside the results.
 
 ---
 
@@ -171,18 +108,18 @@ RepoPilot is designed for inspection, not execution:
 
 ### Requirements
 
-- Python 3.10+ recommended; the project’s deployment configuration targets Python 3.14.
-- Node.js and npm for the Vite frontend.
-- Internet access to GitHub for live repository analysis.
+- Python **3.10+** recommended
+- Internet access to GitHub
+- A GitHub token is optional; anonymous analysis works until the public API rate limit is reached
 
-### 1. Clone the project
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/mehulikhanra904-prog/REPOPILOT-AI.git
 cd REPOPILOT-AI
 ```
 
-### 2. Create and activate a Python environment
+### 2. Create a virtual environment
 
 #### Windows PowerShell
 
@@ -198,130 +135,94 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Install backend dependencies
+### 3. Install dependencies
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-For a fully pinned environment, use `requirements.lock` instead.
-
-### 4. Start the API
+### 4. Start the Streamlit app
 
 ```bash
-python -m uvicorn backend.app.main:app --reload --port 8000
+streamlit run app.py
 ```
 
-Check that it is running:
+Open the local URL printed by Streamlit, normally:
 
 ```text
-http://localhost:8000/api/health
+http://localhost:8501
 ```
 
-### 5. Start the frontend
+#### Windows shortcut
 
-Open a second terminal in the repository root:
-
-```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
-```
-
-Open:
-
-```text
-http://localhost:5173
-```
-
-The Vite development proxy forwards `/api` requests to `http://127.0.0.1:8000`.
-
----
-
-## 🔐 Environment configuration
-
-Create a local `.env` file from `.env.example` and keep it out of version control:
-
-```dotenv
-GITHUB_TOKEN=
-LLM_PROVIDER=none
-OPENAI_API_KEY=
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
-ANTHROPIC_API_KEY=
-ANTHROPIC_MODEL=claude-3-5-haiku-latest
-ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-API_TIMEOUT_SECONDS=20
-ANALYSIS_CACHE_TTL_SECONDS=300
-ANALYSIS_CACHE_MAX_ENTRIES=32
-```
-
-### GitHub token
-
-`GITHUB_TOKEN` raises GitHub API limits and can allow access to repositories available to that token. Only the backend reads it.
-
-### OpenAI-compatible provider
-
-```dotenv
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your-key
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
-```
-
-You can point `OPENAI_BASE_URL` at another compatible provider.
-
-### Anthropic
-
-```dotenv
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=your-key
-ANTHROPIC_MODEL=claude-3-5-haiku-latest
-```
-
-Never commit API keys, tokens, `.env`, or generated credentials.
-
----
-
-## 📡 API surface
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | API and active AI provider health. |
-| `POST` | `/api/analyze` | Repository metadata, language composition, tree, activity, architecture, and quality signals. |
-| `POST` | `/api/file` | Fetch a selected source file from the repository. |
-| `POST` | `/api/explain` | Explain a selected file with the configured provider or local fallback. |
-| `POST` | `/api/ask` | Ask a repository-aware question with optional selected-file context. |
-
-Example analysis request:
-
-```bash
-curl -X POST http://localhost:8000/api/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"repo_url":"https://github.com/fastapi/fastapi"}'
+```bat
+run_repopilot.bat
 ```
 
 ---
 
-## 🧪 Test and build
+## 🔐 Optional GitHub token
 
-Run backend tests from the repository root:
+Set `GITHUB_TOKEN` to raise GitHub API limits. Never commit the token.
 
-```bash
-python -m pytest backend/tests -q
+### PowerShell
+
+```powershell
+$env:GITHUB_TOKEN = "your-token"
+streamlit run app.py
 ```
 
-Build the frontend:
+### macOS / Linux
 
 ```bash
-npm --prefix frontend run build
+export GITHUB_TOKEN="your-token"
+streamlit run app.py
 ```
 
-Preview the production frontend locally:
+When the anonymous API limit is reached, RepoPilot attempts a public archive fallback and records that limitation in the report.
+
+---
+
+## 🧪 Test and verify
+
+Run the syntax check and deterministic analyzer tests:
 
 ```bash
-npm --prefix frontend run preview
+python -m py_compile app.py analyzer.py test_analyzer.py
+python -m pytest -q
 ```
+
+Live repository analysis requires network access to `api.github.com`. Tests do not execute code from analyzed repositories.
+
+---
+
+## 🧩 Analyzer API
+
+The analyzer can also be used directly from Python:
+
+```python
+from analyzer import RepoAnalyzer, analyze_repository, to_markdown
+
+result = analyze_repository("https://github.com/owner/repository")
+print(result["health"])
+print(to_markdown(result))
+```
+
+For custom bounds:
+
+```python
+from analyzer import RepoAnalyzer
+
+analyzer = RepoAnalyzer(
+    max_files=100,
+    max_file_bytes=50_000,
+    timeout=10,
+)
+result = analyzer.analyze("https://github.com/owner/repository")
+```
+
+The result includes metadata, limits, files, architecture, languages, frameworks, documentation signals, test signals, configurations, secret findings, health, findings, completed phases, methodology, and limitations.
 
 ---
 
@@ -329,54 +230,55 @@ npm --prefix frontend run preview
 
 ```text
 REPOPILOT-AI/
-├── backend/
-│   ├── app/
-│   │   ├── config.py       # Environment-backed settings
-│   │   ├── github.py       # GitHub API access and repository analysis
-│   │   ├── llm.py          # Provider adapters and local fallbacks
-│   │   ├── main.py         # FastAPI routes and cache
-│   │   └── models.py       # Request models
-│   └── tests/              # Offline backend tests
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx         # Dashboard and interaction flow
-│   │   ├── main.jsx        # React entry point
-│   │   └── styles.css      # Visual system and responsive layout
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-├── .env.example
-├── Dockerfile
-├── requirements.txt
-├── requirements.lock
-└── README.md
+├── app.py                 # Streamlit UI, local demo auth, dashboard, report download
+├── analyzer.py            # Safe GitHub API/archive analyzer and Markdown exporter
+├── styles.css             # RepoPilot visual system and responsive styling
+├── test_analyzer.py       # Deterministic analyzer tests
+├── requirements.txt       # Application and test dependencies
+├── run_repopilot.bat      # Windows launcher
+├── backend/               # Earlier FastAPI integration preserved in the repository
+├── frontend/              # Earlier React dashboard preserved in the repository
+└── README.md              # Project documentation
 ```
 
 ---
 
-## ⚠️ Product notes and limitations
+## 🛡️ Authentication note
 
-The static quality pass is intentionally explainable and conservative. It looks for signals such as unfinished TODO markers, dynamic execution, broad error handling, debug output, very large modules, missing README files, and an obvious lack of tests.
+The Streamlit sign-in experience is **local demo authentication only**:
 
-It is **not**:
+- Accounts live in Streamlit session state.
+- Passwords are salted and hashed with PBKDF2-HMAC-SHA256.
+- Accounts and sessions disappear when the app session/process ends.
+- There is no database, account recovery, email verification, durable session, or identity provider.
 
-- A full security audit
-- A dependency vulnerability database
-- A proof that a repository is safe or production-ready
-- A replacement for the project’s own tests, linting, type checks, or security tooling
+Do not use this flow to protect sensitive data or present it as production security.
 
-Before exposing a deployment with GitHub or LLM credentials, add production authentication, request quotas, rate limiting, audit logging, and a deliberate secrets-management strategy.
+---
+
+## ⚠️ Limitations
+
+RepoPilot is an initial repository investigator, not a production security scanner or proof of software quality.
+
+- Secret detection is pattern-based and can produce false positives or miss custom formats.
+- A detected pattern does not prove a credential is valid or active.
+- Test discovery follows conventional names and may miss custom layouts.
+- Dependency vulnerabilities are not asserted without advisory data.
+- Large repositories are intentionally bounded for safety and responsiveness.
+- Metadata and language counts may be approximate when archive fallback is used.
+
+Always review findings in context and rotate any real credential that may have been exposed.
 
 ---
 
 ## 🗺️ Roadmap ideas
 
-- Pull-request and commit comparison reports
-- Configurable quality profiles by language and project type
-- More framework and dependency signals
-- Provider health and latency metrics
-- Team workspaces and persisted scan history
-- CI checks for repository health regressions
+- Configurable analysis profiles for different repository sizes
+- More language, framework, and secret-pattern coverage
+- Dependency advisory integration
+- Comparison reports between repository revisions
+- CI checks for health-score regressions
+- Production-ready authentication and persistent scan history
 
 ---
 

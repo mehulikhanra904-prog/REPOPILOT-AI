@@ -187,8 +187,25 @@ class RepoAnalyzer:
                 except GitHubAPIError:
                     item["content_error"] = "content unavailable"
             files.append(item)
-        languages = self.api.get(base + "/languages")
-        return _result_from_files(repository_url, metadata, files, languages, tree_truncated=len(tree.get("tree", [])) > self.max_files)
+        source_note = ""
+        try:
+            languages = self.api.get(base + "/languages")
+        except GitHubAPIError as exc:
+            if "rate limit exceeded" not in str(exc).lower():
+                raise
+            # The language endpoint is a separate API request. If only that
+            # request is limited, keep the analysis useful by deriving a
+            # conservative language map from the files already inspected.
+            languages = _languages_from_paths([item["path"] for item in files])
+            source_note = "GitHub API rate limit reached for language metadata; language counts are inferred from inspected file extensions."
+        return _result_from_files(
+            repository_url,
+            metadata,
+            files,
+            languages,
+            tree_truncated=len(tree.get("tree", [])) > self.max_files,
+            source_note=source_note,
+        )
 
     def _analyze_archive(self, owner: str, repo: str, repository_url: str, *, branch: str = "main") -> Dict[str, Any]:
         """Fallback for anonymous API rate limits using GitHub's public archive endpoint."""

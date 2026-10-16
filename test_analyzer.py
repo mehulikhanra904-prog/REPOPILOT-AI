@@ -1,6 +1,8 @@
+import base64
+
 import pytest
 
-from analyzer import RepoAnalyzer, _secret_findings, to_markdown, validate_github_url
+from analyzer import GitHubAPIError, RepoAnalyzer, _secret_findings, to_markdown, validate_github_url
 
 
 def test_validate_url_accepts_repo_and_rejects_unsafe_urls():
@@ -30,3 +32,24 @@ def test_findings_include_evidence_paths_and_markdown_export():
     assert findings[0]["path"] == ".env" and findings[0]["line"] == 1
     report = to_markdown({"repository": "https://github.com/a/b", "metadata": {"full_name": "a/b", "description": None, "default_branch": "main"}, "health": {"score": 10, "max": 100}, "languages": {}, "frameworks": [], "findings": findings})
     assert "a/b" in report and "abcdefghijklmnop" not in report
+
+
+def test_language_rate_limit_falls_back_to_file_extensions():
+    class FakeGitHub:
+        def get(self, path):
+            if path == "/repos/octo/demo":
+                return {"full_name": "octo/demo", "default_branch": "main"}
+            if path.startswith("/repos/octo/demo/git/trees/"):
+                return {"tree": [{"type": "blob", "path": "app.py", "size": 10}]}
+            if path == "/repos/octo/demo/contents/app.py":
+                return {"content": base64.b64encode(b"print('ok')\n").decode()}
+            if path == "/repos/octo/demo/languages":
+                raise GitHubAPIError("GitHub API error: rate limit exceeded")
+            raise AssertionError(f"Unexpected API path: {path}")
+
+    analyzer = RepoAnalyzer()
+    analyzer.api = FakeGitHub()
+    result = analyzer.analyze("https://github.com/octo/demo")
+
+    assert result["languages"] == {"Python": 1}
+    assert any("inferred from inspected file extensions" in item for item in result["limitations"])

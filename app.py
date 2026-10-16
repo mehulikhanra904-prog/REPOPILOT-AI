@@ -232,6 +232,9 @@ def render_dashboard(result: Any, repo_url: str) -> None:
     if not phases:
         phases = [name for name in ("metadata", "tree", "files", "findings", "health") if get_value(result, name) is not None]
 
+    languages = get_value(result, "languages", default={})
+    primary_language = next(iter(languages), "—") if isinstance(languages, dict) and languages else "—"
+
     with st.container(border=True):
         st.subheader("Analysis status", anchor=False)
         cols = st.columns(max(1, min(4, len(phases) or 1)))
@@ -247,7 +250,7 @@ def render_dashboard(result: Any, repo_url: str) -> None:
 
     info_cols = st.columns(4)
     overview_items = [
-        ("Language", get_value(overview, "language", "primary_language", default=(next(iter(get_value(result, "languages", default={}), "—")) if get_value(result, "languages", default={}) else "—"))),
+        ("Language", get_value(overview, "language", "primary_language", default=primary_language)),
         ("Files analyzed", get_value(overview, "files", "file_count", default=get_value(get_value(result, "limits", default={}), "files_seen", default="—"))),
         ("Open findings", len(findings)),
         ("Default branch", get_value(overview, "default_branch", "branch", default="—")),

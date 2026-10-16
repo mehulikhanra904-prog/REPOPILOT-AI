@@ -99,6 +99,8 @@ The repository includes `render.yaml` for a native Render deployment. It
 creates a Python web service for FastAPI and a Render static site for the Vite
 dashboard.
 
+[Deploy this Blueprint to Render](https://render.com/deploy?repo=https://github.com/mehulikhanra904-prog/REPOPILOT-AI)
+
 1. Push this repository to a GitHub repository.
 2. In Render, choose **New → Blueprint**, connect the GitHub repository, and
    select the branch containing `render.yaml`.

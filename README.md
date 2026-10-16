@@ -1,133 +1,410 @@
-# RepoPilot AI
+# ✦ RepoPilot AI
 
-RepoPilot AI is a portfolio-quality GitHub repository analyzer. Paste a public
-GitHub URL to get an interactive repository map with metadata, language
-composition, file exploration, explainable static quality signals, and a
-context-aware question panel.
+### **Understand any repository. Explore the code. Ship with confidence.**
 
-The MVP is intentionally useful without credentials: GitHub metadata, the file
-tree, source browsing, and the local static scan work in `LLM_PROVIDER=none`
-mode. Optional OpenAI-compatible or Anthropic providers can add generated code
-explanations and answers, while their keys remain on the FastAPI backend.
+RepoPilot AI is a polished repository-intelligence workspace for developers. Paste a public GitHub URL and get an explorable map of the project’s architecture, language composition, source tree, static quality signals, recent activity, and the questions that matter.
 
-## Stack
+It combines a **React + Vite dashboard**, a **FastAPI backend**, GitHub’s REST API, and optional provider-neutral AI explanations — while keeping provider credentials on the server instead of in the browser.
 
-- **Frontend:** React 19 + Vite 7 + Lucide icons
-- **Backend:** Python 3.14 + FastAPI + httpx
-- **Data:** GitHub REST API (no GitHub SDK or browser token required)
-- **AI:** provider-neutral HTTP adapters for OpenAI-compatible APIs and Anthropic
-- **Deployment:** one Docker image can serve the built dashboard and API
+<p align="center">
+  <a href="https://github.com/mehulikhanra904-prog/REPOPILOT-AI"><strong>View on GitHub</strong></a>
+  ·
+  <a href="#quick-start"><strong>Run locally</strong></a>
+  ·
+  <a href="#deploy-to-render"><strong>Deploy to Render</strong></a>
+</p>
 
-## Run locally on Windows PowerShell
+---
 
-Open PowerShell in this repository directory:
+## ✨ What RepoPilot does
+
+RepoPilot turns the first pass through an unfamiliar repository into a focused workflow:
+
+1. **Paste** a GitHub repository URL.
+2. **Map** metadata, languages, files, architecture, activity, and project signals.
+3. **Explore** source files in the browser with a searchable code explorer.
+4. **Review** explainable quality insights instead of opaque scores.
+5. **Ask** repository-aware questions with optional AI assistance.
+6. **Export** a Markdown report for a handoff, review, or project record.
+
+Core repository analysis works without an AI provider key.
+
+---
+
+## 🎯 Product highlights
+
+| Area | Included |
+| --- | --- |
+| **Repository overview** | Stars, forks, default branch, update date, file counts, primary language, and quality score. |
+| **Architecture map** | Detected stacks, entry points, layers, documentation files, test files, and CI workflows. |
+| **Language breakdown** | GitHub language composition with visual percentage bars. |
+| **Code Explorer** | Searchable repository tree, source previews, line numbers, and file metadata. |
+| **Quality Insights** | Lightweight, explainable static signals grouped by high, medium, and low priority. |
+| **Ask RepoPilot** | Context-aware questions about the repository, architecture, stack, or selected files. |
+| **AI explanations** | Optional OpenAI-compatible or Anthropic-backed explanations through the API. |
+| **Report export** | Download a Markdown summary containing repository context, architecture, languages, quality insights, and activity. |
+| **Recent scans** | Keep the latest repository history in the browser’s local storage. |
+| **Safe defaults** | Read-only GitHub inspection; repository code is not checked out or executed. |
+
+---
+
+## 🖥️ Screens and workflow
+
+### Welcome workspace
+
+Start with one clean repository URL field, quick-start examples, and a clear explanation of what RepoPilot can inspect without credentials.
+
+### Repository overview
+
+See the repository’s most important signals at a glance: language composition, architecture summary, file structure, quality score, recent signals, and recent commits.
+
+### Code Explorer
+
+Filter the indexed tree, open a source file, inspect its content with line numbers, and request an explanation for the active file when an AI provider is configured.
+
+### Quality Insights
+
+Review static signals by severity. Every signal is presented as a review prompt — not as a claim of perfect correctness or a full security audit.
+
+### Ask RepoPilot
+
+Ask questions using the repository map and, optionally, the currently selected source file as context. Without an external provider, the app still returns local fallback guidance.
+
+---
+
+## 🧱 Architecture
+
+```text
+┌──────────────────────────────┐
+│ React 19 + Vite dashboard     │
+│ frontend/src/App.jsx         │
+└──────────────┬───────────────┘
+               │ JSON over HTTP
+               ▼
+┌──────────────────────────────┐
+│ FastAPI service               │
+│ backend/app/main.py          │
+│                              │
+│  /api/health                 │
+│  /api/analyze                │
+│  /api/file                   │
+│  /api/explain                │
+│  /api/ask                   │
+└──────────────┬───────────────┘
+               │
+      ┌────────┴─────────┐
+      ▼                  ▼
+ GitHub REST API     Optional LLM provider
+```
+
+### Backend responsibilities
+
+- Validate and normalize GitHub repository URLs.
+- Read repository metadata, language statistics, trees, files, and commits.
+- Run bounded, explainable static quality checks.
+- Cache analyses briefly to reduce repeated GitHub requests.
+- Keep GitHub and AI credentials on the backend.
+- Provide local fallback answers when no AI provider is configured.
+
+### Frontend responsibilities
+
+- Render the repository workspace and navigation.
+- Display analysis, architecture, activity, and quality signals.
+- Fetch individual files on demand.
+- Maintain recent scan history in browser `localStorage`.
+- Export the current analysis as Markdown.
+
+---
+
+## 🛡️ Safety and privacy boundaries
+
+RepoPilot is designed for inspection, not execution:
+
+- Repository code is read through GitHub APIs; it is not cloned or run.
+- GitHub and LLM keys are read by the FastAPI backend only.
+- The browser receives analysis results and requested source content, not provider secrets.
+- Quality signals are conservative prompts for review, not proof of security or correctness.
+- The default deployment uses `LLM_PROVIDER=none`, so basic analysis does not require an AI key.
+- Public internet deployments should add authentication, quotas, and rate limiting before exposing private integrations.
+
+---
+
+## 🧰 Stack
+
+### Frontend
+
+- React 19
+- Vite 7
+- Lucide React icons
+- CSS custom design system
+
+### Backend
+
+- Python 3.14
+- FastAPI
+- Uvicorn
+- HTTPX
+- python-dotenv
+
+### Integrations
+
+- GitHub REST API
+- OpenAI-compatible providers
+- Anthropic
+- Any OpenAI-compatible endpoint through `OPENAI_BASE_URL`
+
+### Deployment
+
+- Native Render Blueprint via `render.yaml`
+- Optional single-image Docker deployment via `Dockerfile`
+
+---
+
+## 🚀 Quick start
+
+### Requirements
+
+- Python 3.10+ recommended; the project’s deployment configuration targets Python 3.14.
+- Node.js and npm for the Vite frontend.
+- Internet access to GitHub for live repository analysis.
+
+### 1. Clone the project
+
+```bash
+git clone https://github.com/mehulikhanra904-prog/REPOPILOT-AI.git
+cd REPOPILOT-AI
+```
+
+### 2. Create and activate a Python environment
+
+#### Windows PowerShell
 
 ```powershell
 py -3.14 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-npm --prefix frontend install
 ```
 
-`requirements.txt` keeps the human-maintained direct dependency contract;
-`requirements.lock` pins the complete Python environment used by the Docker
-image and the verified local setup. `frontend/package-lock.json` does the same
-for the Vite app.
+#### macOS / Linux
 
-Start the backend in PowerShell window 1:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+### 3. Install backend dependencies
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+For a fully pinned environment, use `requirements.lock` instead.
+
+### 4. Start the API
+
+```bash
 python -m uvicorn backend.app.main:app --reload --port 8000
 ```
 
-Start the Vite dashboard in PowerShell window 2:
+Check that it is running:
 
-```powershell
+```text
+http://localhost:8000/api/health
+```
+
+### 5. Start the frontend
+
+Open a second terminal in the repository root:
+
+```bash
+npm --prefix frontend install
 npm --prefix frontend run dev
 ```
 
-Open <http://localhost:5173>. The Vite development proxy forwards `/api`
-requests to FastAPI at `http://127.0.0.1:8000`.
+Open:
 
-### Optional credentials
+```text
+http://localhost:5173
+```
 
-Edit `.env` (never commit it):
+The Vite development proxy forwards `/api` requests to `http://127.0.0.1:8000`.
 
-- `GITHUB_TOKEN` raises GitHub API limits and allows access to repositories the
-  token can read.
-- Set `LLM_PROVIDER=openai` and `OPENAI_API_KEY`, or
-  `LLM_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`, to enable generated answers.
-- You can point `OPENAI_BASE_URL` at any OpenAI-compatible provider. Keys are
-  read only by FastAPI and are never included in frontend JavaScript.
+---
 
-This MVP is designed for local/trusted use. Before exposing a deployment to
-the public internet with `GITHUB_TOKEN` or an LLM key, add user authentication,
-request quotas, and rate limiting around the API endpoints.
+## 🔐 Environment configuration
 
-## Test and build
+Create a local `.env` file from `.env.example` and keep it out of version control:
 
-Run the backend tests offline from the repository root:
+```dotenv
+GITHUB_TOKEN=
+LLM_PROVIDER=none
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-3-5-haiku-latest
+ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+API_TIMEOUT_SECONDS=20
+ANALYSIS_CACHE_TTL_SECONDS=300
+ANALYSIS_CACHE_MAX_ENTRIES=32
+```
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+### GitHub token
+
+`GITHUB_TOKEN` raises GitHub API limits and can allow access to repositories available to that token. Only the backend reads it.
+
+### OpenAI-compatible provider
+
+```dotenv
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+```
+
+You can point `OPENAI_BASE_URL` at another compatible provider.
+
+### Anthropic
+
+```dotenv
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your-key
+ANTHROPIC_MODEL=claude-3-5-haiku-latest
+```
+
+Never commit API keys, tokens, `.env`, or generated credentials.
+
+---
+
+## 📡 API surface
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | API and active AI provider health. |
+| `POST` | `/api/analyze` | Repository metadata, language composition, tree, activity, architecture, and quality signals. |
+| `POST` | `/api/file` | Fetch a selected source file from the repository. |
+| `POST` | `/api/explain` | Explain a selected file with the configured provider or local fallback. |
+| `POST` | `/api/ask` | Ask a repository-aware question with optional selected-file context. |
+
+Example analysis request:
+
+```bash
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"repo_url":"https://github.com/fastapi/fastapi"}'
+```
+
+---
+
+## 🧪 Test and build
+
+Run backend tests from the repository root:
+
+```bash
 python -m pytest backend/tests -q
 ```
 
 Build the frontend:
 
-```powershell
+```bash
 npm --prefix frontend run build
 ```
 
-Run the production-shaped container (Docker Desktop):
+Preview the production frontend locally:
 
-```powershell
-docker build -t repilot-ai .
-docker run --rm -p 8000:8000 --env-file .env repilot-ai
+```bash
+npm --prefix frontend run preview
 ```
 
-Then open <http://localhost:8000>. The Docker image contains the Vite build and
-FastAPI serves it as a single application. The container does not require an
-LLM key for basic repository analysis.
+---
 
-## Deploy to Render without Docker
+## 🚢 Deploy to Render
 
-The repository includes `render.yaml` for a native Render deployment. It
-creates a Python web service for FastAPI and a Render static site for the Vite
-dashboard.
+This repository includes `render.yaml` for a native Render deployment with two services:
 
-[Deploy this Blueprint to Render](https://render.com/deploy?repo=https://github.com/mehulikhanra904-prog/REPOPILOT-AI)
+- `repilot-api` — FastAPI web service
+- `repilot-ui` — Vite static site
 
-1. Push this repository to a GitHub repository.
-2. In Render, choose **New → Blueprint**, connect the GitHub repository, and
-   select the branch containing `render.yaml`.
-3. Review the two services (`repilot-api` and `repilot-ui`) and click **Apply**.
-4. In the `repilot-api` environment settings, add `GITHUB_TOKEN` if you need
-   higher GitHub limits or private repository access. Add an LLM provider key
-   only when you want generated explanations.
-5. If you rename either Render service, update `ALLOWED_ORIGINS` on the API
-   and `VITE_API_URL` on the static site to the actual Render URLs, then
-   redeploy the static site.
+### Blueprint deployment
 
-The default Blueprint keeps `LLM_PROVIDER=none`, so the deployed app still
-supports repository analysis, file browsing, static quality signals, report
-export, and local fallback questions without AI credentials.
+1. Push the repository to GitHub.
+2. In Render, choose **New → Blueprint**.
+3. Connect this repository and select the branch containing `render.yaml`.
+4. Review both services and click **Apply**.
+5. Add `GITHUB_TOKEN` in the API service if higher GitHub limits are needed.
+6. Add an AI provider key only when generated explanations are desired.
 
-## API surface
+You can also use Render’s deploy button:
 
-- `GET /api/health` — backend and provider mode health
-- `POST /api/analyze` — metadata, languages, tree, and static quality signals
-- `POST /api/file` — fetch a source file from the selected repository
-- `POST /api/explain` — explain a file with the configured provider or local fallback
-- `POST /api/ask` — ask a repository-aware question with the configured provider or local fallback
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/mehulikhanra904-prog/REPOPILOT-AI)
 
-## Product notes
+The default Blueprint keeps `LLM_PROVIDER=none`, so repository analysis, source browsing, static quality signals, report export, and local fallback questions remain available without AI credentials.
 
-The static quality pass is intentionally explainable and conservative. It
-looks for signals such as unfinished TODO markers, dynamic execution, broad
-error handling, debug output, very large modules, missing README files, and an
-obvious lack of tests. It is not a security audit and should be paired with
-the repository's own test, lint, and security tooling.
+---
+
+## 🗂️ Project structure
+
+```text
+REPOPILOT-AI/
+├── backend/
+│   ├── app/
+│   │   ├── config.py       # Environment-backed settings
+│   │   ├── github.py       # GitHub API access and repository analysis
+│   │   ├── llm.py          # Provider adapters and local fallbacks
+│   │   ├── main.py         # FastAPI routes and cache
+│   │   └── models.py       # Request models
+│   └── tests/              # Offline backend tests
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx         # Dashboard and interaction flow
+│   │   ├── main.jsx        # React entry point
+│   │   └── styles.css      # Visual system and responsive layout
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── .env.example
+├── Dockerfile
+├── render.yaml
+├── requirements.txt
+├── requirements.lock
+└── README.md
+```
+
+---
+
+## ⚠️ Product notes and limitations
+
+The static quality pass is intentionally explainable and conservative. It looks for signals such as unfinished TODO markers, dynamic execution, broad error handling, debug output, very large modules, missing README files, and an obvious lack of tests.
+
+It is **not**:
+
+- A full security audit
+- A dependency vulnerability database
+- A proof that a repository is safe or production-ready
+- A replacement for the project’s own tests, linting, type checks, or security tooling
+
+Before exposing a deployment with GitHub or LLM credentials, add production authentication, request quotas, rate limiting, audit logging, and a deliberate secrets-management strategy.
+
+---
+
+## 🗺️ Roadmap ideas
+
+- Pull-request and commit comparison reports
+- Configurable quality profiles by language and project type
+- More framework and dependency signals
+- Provider health and latency metrics
+- Team workspaces and persisted scan history
+- CI checks for repository health regressions
+
+---
+
+## 📄 License
+
+No license has been declared for this project yet. Add a `LICENSE` file before distributing or reusing the code under specific terms.
+
+---
+
+<p align="center">
+  <strong>RepoPilot AI</strong><br />
+  <em>See the repository clearly. Fix the right things first.</em>
+</p>

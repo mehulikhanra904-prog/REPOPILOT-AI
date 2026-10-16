@@ -7,12 +7,20 @@ RepoPilot AI is a polished repository-intelligence workspace for developers. Pas
 It combines a **React + Vite dashboard**, a **FastAPI backend**, GitHub’s REST API, and optional provider-neutral AI explanations — while keeping provider credentials on the server instead of in the browser.
 
 <p align="center">
+  <a href="https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/"><strong>🌐 Live Demo</strong></a>
+  ·
   <a href="https://github.com/mehulikhanra904-prog/REPOPILOT-AI"><strong>View on GitHub</strong></a>
   ·
   <a href="#quick-start"><strong>Run locally</strong></a>
-  ·
-  <a href="#deploy-to-render"><strong>Deploy to Render</strong></a>
 </p>
+
+---
+
+## 🌐 Live demo
+
+Try RepoPilot AI in your browser:
+
+**[Open the RepoPilot AI live demo →](https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/)**
 
 ---
 
@@ -155,7 +163,6 @@ RepoPilot is designed for inspection, not execution:
 
 ### Deployment
 
-- Native Render Blueprint via `render.yaml`
 - Optional single-image Docker deployment via `Dockerfile`
 
 ---
@@ -318,30 +325,6 @@ npm --prefix frontend run preview
 
 ---
 
-## 🚢 Deploy to Render
-
-This repository includes `render.yaml` for a native Render deployment with two services:
-
-- `repilot-api` — FastAPI web service
-- `repilot-ui` — Vite static site
-
-### Blueprint deployment
-
-1. Push the repository to GitHub.
-2. In Render, choose **New → Blueprint**.
-3. Connect this repository and select the branch containing `render.yaml`.
-4. Review both services and click **Apply**.
-5. Add `GITHUB_TOKEN` in the API service if higher GitHub limits are needed.
-6. Add an AI provider key only when generated explanations are desired.
-
-You can also use Render’s deploy button:
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/mehulikhanra904-prog/REPOPILOT-AI)
-
-The default Blueprint keeps `LLM_PROVIDER=none`, so repository analysis, source browsing, static quality signals, report export, and local fallback questions remain available without AI credentials.
-
----
-
 ## 🗂️ Project structure
 
 ```text
@@ -364,7 +347,6 @@ REPOPILOT-AI/
 │   └── vite.config.js
 ├── .env.example
 ├── Dockerfile
-├── render.yaml
 ├── requirements.txt
 ├── requirements.lock
 └── README.md

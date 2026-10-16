@@ -1,0 +1,33 @@
+# Native Render deployment: no Docker is required.
+# This deploys the FastAPI API and Vite dashboard as two Render services.
+services:
+  - type: web
+    name: repilot-api
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.lock
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.7
+      - key: LLM_PROVIDER
+        value: none
+      - key: ALLOWED_ORIGINS
+        value: https://repilot-ui.onrender.com
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+staticSites:
+  - name: repilot-ui
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://repilot-api.onrender.com

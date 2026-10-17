@@ -1,6 +1,8 @@
-                            REPOPILOT-AI
-                            
-### **Understand any repository. Explore the code. Fix the right things first.**
+# ✦ RepoPilot AI
+
+## **Repository intelligence that turns unfamiliar code into confident decisions.**
+
+### **Scan the structure · Surface the risks · Ship the next improvement**
 
 RepoPilot AI is an evidence-first GitHub repository investigator built with **Python** and **Streamlit**. Paste a public GitHub URL and get a focused view of the repository’s metadata, file structure, languages, framework signals, dependencies, tests, configuration, likely secret patterns, health score, and prioritized findings.
 
@@ -12,6 +14,10 @@ RepoPilot AI is an evidence-first GitHub repository investigator built with **Py
   <a href="#quick-start"><strong>Run locally</strong></a>
 </p>
 
+<p align="center">
+  <strong>Python</strong> · <strong>Streamlit</strong> · <strong>GitHub REST API</strong> · <strong>PBKDF2 Authentication</strong> · <strong>Responsive CSS</strong>
+</p>
+
 ---
 
 ## 🌐 Live demo
@@ -19,6 +25,32 @@ RepoPilot AI is an evidence-first GitHub repository investigator built with **Py
 Try the deployed Streamlit application:
 
 **[Open RepoPilot AI →](https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/)**
+
+---
+
+## 🧰 Technology stack
+
+RepoPilot is built as a focused, portable Python application with a modern presentation layer:
+
+| Layer | Technologies | Purpose |
+| --- | --- | --- |
+| **Application UI** | **Streamlit 1.57+** | Interactive dashboard, authentication, progress states, filters, exports, comparison workflow, and demo presets. |
+| **Core language** | **Python 3.10+** | Analyzer logic, data shaping, report generation, caching, and application orchestration. |
+| **Repository data** | **GitHub REST API** | Read-only metadata, branches, trees, file contents, and language information. |
+| **Fallback source** | **GitHub public ZIP archives** | Keeps bounded analysis available when API rate limits are reached. |
+| **Security** | **PBKDF2-HMAC-SHA256**, salted hashes, Streamlit secrets | Protects local demo passwords and keeps optional GitHub tokens out of the UI and exports. |
+| **Styling** | **Custom CSS**, CSS variables, glassmorphism, responsive media queries | Powers the lavender glass interface, animated light background, themes, cards, focus states, and motion preferences. |
+| **Data formats** | **Markdown, JSON, CSV** | Supports human-readable reports, machine-readable exports, and filtered findings workflows. |
+| **Testing** | **pytest**, Python compilation checks | Covers validation, redaction, scoring, rate-limit fallback, dependencies, caching, and comparisons. |
+| **Deployment** | **Streamlit Cloud** | Hosts the live interactive demo from the GitHub `main` branch. |
+
+### Engineering principles
+
+- **Read-only by default:** RepoPilot never checks out or executes submitted repository code.
+- **Evidence before opinion:** Findings include paths, line numbers, confidence, evidence, and limitations.
+- **Bounded by design:** File count, file size, and API work are limited for safety and responsiveness.
+- **Provider-independent:** Core repository analysis works without an external AI provider.
+- **Portable output:** Results can be viewed in the app or downloaded as Markdown, JSON, and CSV.
 
 ---
 

@@ -1,4 +1,5 @@
-
+                            REPOPILOT-AI
+                            
 ### **Understand any repository. Explore the code. Fix the right things first.**
 
 RepoPilot AI is an evidence-first GitHub repository investigator built with **Python** and **Streamlit**. Paste a public GitHub URL and get a focused view of the repository’s metadata, file structure, languages, framework signals, dependencies, tests, configuration, likely secret patterns, health score, and prioritized findings.

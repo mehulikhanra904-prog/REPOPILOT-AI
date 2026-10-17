@@ -1,3 +1,4 @@
+<img width="1448" height="918" alt="REPOPILOT-AI SS FIRST PAGE" src="https://github.com/user-attachments/assets/eb2f6059-661c-4c65-92a7-436c9e0af9cd" />
 # ✦ RepoPilot AI
 
 ### **Understand any repository. Explore the code. Fix the right things first.**
@@ -284,7 +285,18 @@ The Streamlit sign-in experience is **local demo authentication only**:
 
 Do not use this flow to protect sensitive data or present it as production security.
 
+
 ---
+<p align="center">
+  <strong>RepoPilot AI</strong><br />
+  <em>See the repository clearly. Fix the right things first.</em>
+</p>
+
+<img width="1534" height="920" alt="repo overview" src="https://github.com/user-attachments/assets/1d482652-3cfb-4084-bd51-2755e9c0eb1e" />
+
+<img width="1501" height="931" alt="comparision result" src="https://github.com/user-attachments/assets/f4cb9986-5030-43ad-a624-2c4ac2bdfe72" />
+
+
 
 ## ⚠️ Limitations
 
@@ -318,7 +330,7 @@ No license has been declared for this project yet. Add a `LICENSE` file before d
 
 ---
 
-<p align="center">
-  <strong>RepoPilot AI</strong><br />
-  <em>See the repository clearly. Fix the right things first.</em>
-</p>
+
+
+
+

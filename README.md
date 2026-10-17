@@ -2,7 +2,7 @@
 
 ### **Understand any repository. Explore the code. Fix the right things first.**
 
-RepoPilot AI is an evidence-first GitHub repository investigator built with **Python** and **Streamlit**. Paste a public GitHub URL and get a focused view of the repository’s metadata, file structure, languages, framework signals, tests, configuration, likely secret patterns, health score, and prioritized findings.
+RepoPilot AI is an evidence-first GitHub repository investigator built with **Python** and **Streamlit**. Paste a public GitHub URL and get a focused view of the repository’s metadata, file structure, languages, framework signals, dependencies, tests, configuration, likely secret patterns, health score, and prioritized findings.
 
 <p align="center">
   <a href="https://repopilot-ai-ukctftlq66yjsk8bafzmwy.streamlit.app/"><strong>🌐 Live Demo</strong></a>
@@ -30,7 +30,8 @@ RepoPilot turns the first inspection of an unfamiliar repository into a repeatab
 2. **Inspect** bounded metadata, the default-branch tree, and project signals.
 3. **Review** an explainable health indicator and fix-first findings.
 4. **Open** architecture and file-tree evidence in the dashboard.
-5. **Download** a Markdown report for handoffs or follow-up work.
+5. **Compare** repositories and identify file, dependency, language, and health changes.
+6. **Download** Markdown, JSON, or filtered CSV reports for handoffs or follow-up work.
 
 The analyzer is read-only: it does not clone, execute, or modify the submitted repository.
 
@@ -47,17 +48,19 @@ The analyzer is read-only: it does not clone, execute, or modify the submitted r
 | **Framework signals** | Looks for recognizable Django, Flask, FastAPI, React, Node.js, Rust, and Go markers. |
 | **Test discovery** | Checks conventional test directories and filenames. |
 | **Configuration discovery** | Finds common project, package, container, editor, and CI configuration files. |
+| **Dependency insights** | Extracts declared packages from common npm, PyPI, Cargo, and Go manifests without claiming vulnerability status. |
 | **Secret review** | Detects likely token and credential patterns while redacting values in evidence. |
 | **Prioritized findings** | Orders findings by severity and includes paths, line numbers, confidence, and limitations. |
 | **Markdown report** | Exports a report without exposing repository source contents or secret values. |
 | **JSON and CSV exports** | Download the complete safe analysis as JSON or the filtered findings as CSV. |
-| **Scan history** | Reopen recent analyses during the current app process. |
+| **Scan history** | Reopen up to 20 recent analyses during the current app process. |
 | **Repository comparison** | Compare two repositories’ files, dependencies, languages, and health signals. |
-| **Finding filters** | Filter findings by severity, confidence, and file type. |
+| **Finding filters** | Filter findings by severity, confidence, and file type before reviewing or exporting them. |
 | **Secure token settings** | Load an optional GitHub token from Streamlit secrets or `GITHUB_TOKEN` without displaying it. |
 | **Theme toggle** | Switch between polished light and dark UI themes. |
 | **Demo repository presets** | Launch one-click scans for Streamlit, FastAPI, React, and Next.js. |
-| **Rate-limit fallback** | Uses GitHub’s public source archive when anonymous API limits are reached. |
+| **Glassmorphism UI** | Uses a lavender glass interface, animated light background, soft gradients, responsive cards, and reduced-motion support. |
+| **Rate-limit resilience** | Handles GitHub 403/429 limits, uses public archive fallback, and infers languages from inspected files when needed. |
 | **Local demo auth** | Includes a session-only sign-in/create-account gate for the local Streamlit experience. |
 
 ---
@@ -81,6 +84,18 @@ Calculate the health score
         ↓
 Display the dashboard and Markdown report
 ```
+
+## 🎨 Interface experience
+
+The current interface is designed for a polished presentation and judge-friendly demo:
+
+- Lavender gradient background with subtle animated light movement
+- Glassmorphism forms, metrics, cards, and evidence panels
+- Responsive layout for desktop and smaller screens
+- Light and deep-purple dark themes
+- Clear primary actions, hover states, status badges, and progress feedback
+- Accessible reduced-motion fallback for users who prefer less animation
+- Repository presets for instant demonstrations without typing a URL
 
 ### Safety boundaries
 
@@ -189,13 +204,13 @@ streamlit run app.py
 
 When the anonymous API limit is reached, RepoPilot attempts a public archive fallback and records that limitation in the report.
 
-For Streamlit Cloud, add the token under **App settings → Secrets**:
+For Streamlit Cloud, add the token under **App settings → Secrets**. This is especially useful for avoiding GitHub 403/429 rate-limit responses:
 
 ```toml
 github_token = "your-token"
 ```
 
-The app never displays or includes the token in downloaded reports. Analysis results are cached for five minutes by default to reduce repeated GitHub API requests.
+The app never displays or includes the token in downloaded reports. Analysis results are cached for five minutes by default to reduce repeated GitHub API requests. Use the **GitHub token settings** panel in the sidebar to confirm whether a token is loaded without revealing its value.
 
 ---
 
@@ -237,7 +252,7 @@ analyzer = RepoAnalyzer(
 result = analyzer.analyze("https://github.com/owner/repository")
 ```
 
-The result includes metadata, limits, files, architecture, languages, frameworks, documentation signals, test signals, configurations, secret findings, health, findings, completed phases, methodology, and limitations.
+The result includes metadata, limits, files, architecture, languages, frameworks, dependency insights, documentation signals, test signals, configurations, secret findings, health, findings, completed phases, methodology, and limitations.
 
 ---
 

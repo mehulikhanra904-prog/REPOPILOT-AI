@@ -228,6 +228,9 @@ strong { color: var(--rp-ink); }
 .finding-index, .history-index { color: #7e9a38; font: 760 0.76rem ui-monospace, monospace; padding-top: 0.3rem; }
 .finding-description { line-height: 1.48; margin: 0 0 0.55rem; }
 .history-index { font-size: 0.9rem; }
+.history-card { background: rgba(255, 255, 255, 0.64); border: 1px solid var(--rp-line); border-radius: 13px; padding: 0.8rem; }
+.filter-caption { color: var(--rp-muted); font-size: 0.78rem; }
+.export-row { margin-top: 1.1rem; }
 .stExpander { border-color: var(--rp-line); border-radius: 11px; }
 button { border-radius: 10px !important; }
 button[kind="secondary"] {

@@ -50,6 +50,12 @@ The analyzer is read-only: it does not clone, execute, or modify the submitted r
 | **Secret review** | Detects likely token and credential patterns while redacting values in evidence. |
 | **Prioritized findings** | Orders findings by severity and includes paths, line numbers, confidence, and limitations. |
 | **Markdown report** | Exports a report without exposing repository source contents or secret values. |
+| **JSON and CSV exports** | Download the complete safe analysis as JSON or the filtered findings as CSV. |
+| **Scan history** | Reopen recent analyses during the current app process. |
+| **Repository comparison** | Compare two repositories’ files, dependencies, languages, and health signals. |
+| **Finding filters** | Filter findings by severity, confidence, and file type. |
+| **Secure token settings** | Load an optional GitHub token from Streamlit secrets or `GITHUB_TOKEN` without displaying it. |
+| **Theme toggle** | Switch between polished light and dark UI themes. |
 | **Rate-limit fallback** | Uses GitHub’s public source archive when anonymous API limits are reached. |
 | **Local demo auth** | Includes a session-only sign-in/create-account gate for the local Streamlit experience. |
 
@@ -181,6 +187,14 @@ streamlit run app.py
 ```
 
 When the anonymous API limit is reached, RepoPilot attempts a public archive fallback and records that limitation in the report.
+
+For Streamlit Cloud, add the token under **App settings → Secrets**:
+
+```toml
+github_token = "your-token"
+```
+
+The app never displays or includes the token in downloaded reports. Analysis results are cached for five minutes by default to reduce repeated GitHub API requests.
 
 ---
 

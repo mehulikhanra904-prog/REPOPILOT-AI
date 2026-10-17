@@ -6,6 +6,10 @@ import inspect
 import json
 import hashlib
 import hmac
+import csv
+import io
+import os
+from datetime import datetime, timezone
 from html import escape
 import re
 import secrets
@@ -36,7 +40,87 @@ def get_auth_users() -> dict[str, dict[str, str]]:
 def inject_styles() -> None:
     css_path = ROOT / "styles.css"
     if css_path.exists():
-        st.html(f"<style>{css_path.read_text(encoding='utf-8')}</style>")
+        css = css_path.read_text(encoding="utf-8")
+        if st.session_state.get("theme_mode") == "dark":
+            css += """
+            <style>
+            :root { --rp-ink:#e7f0ed; --rp-muted:#a9bbb5; --rp-faint:#82958f; --rp-paper:#101a1b; --rp-panel:rgba(25,41,42,.92); --rp-panel-strong:#19292a; --rp-line:rgba(220,240,232,.14); --rp-line-strong:rgba(220,240,232,.24); }
+            html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stAppViewContainer"] > .main { background:var(--rp-paper) !important; color:var(--rp-ink); }
+            [data-testid="stAppViewContainer"]::before { opacity:.24; }
+            h1,h2,h3,p,strong,[data-testid="stMetricValue"] { color:var(--rp-ink) !important; }
+            p,.hero-lede,.auth-lede { color:#b7c9c2; }
+            [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stMetric"], [data-testid="stForm"], [data-testid="stTextInput"] input, [data-testid="stMultiSelect"] > div, [data-testid="stSelectbox"] > div { background:var(--rp-panel) !important; color:var(--rp-ink); }
+            [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea { color:var(--rp-ink); }
+            button[kind="secondary"] { background:#203536; color:#e6f3ed; }
+            button[kind="secondary"]:hover { background:#2c4848; color:#fff; }
+            pre { background:rgba(255,255,255,.06) !important; }
+            </style>
+            """
+        st.html(f"<style>{css}</style>")
+
+
+def configured_github_token() -> str | None:
+    """Read a token from supported secret/config sources without ever rendering it."""
+    for key in ("github_token", "GITHUB_TOKEN"):
+        try:
+            value = st.secrets.get(key)
+        except Exception:
+            value = None
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    try:
+        github = st.secrets.get("github", {})
+        value = github.get("token") if isinstance(github, dict) else None
+    except Exception:
+        value = None
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    value = os.getenv("GITHUB_TOKEN")
+    return value.strip() if value else None
+
+
+@st.cache_resource(show_spinner=False)
+def get_token_analyzer(token: str) -> Any:
+    """Reuse a token-backed analyzer so its bounded cache survives reruns."""
+    return analyzer.RepoAnalyzer(token=token)
+
+
+def remember_analysis(repo_url: str, result: Any) -> None:
+    history = st.session_state.setdefault("history", [])
+    history.insert(0, {"repo_url": repo_url, "result": result, "saved_at": datetime.now(timezone.utc).isoformat()})
+    st.session_state.history = history[:20]
+
+
+def export_safe_value(value: Any, token: str | None = None) -> Any:
+    """Keep exports useful while excluding source blobs and any configured credential."""
+    if isinstance(value, dict):
+        return {str(key): export_safe_value(item, token) for key, item in value.items() if key not in {"content", "token"}}
+    if isinstance(value, (list, tuple)):
+        return [export_safe_value(item, token) for item in value]
+    if token and isinstance(value, str):
+        return value.replace(token, "[REDACTED]")
+    return value
+
+
+def json_text(value: Any) -> str:
+    return json.dumps(export_safe_value(value, configured_github_token()), indent=2, ensure_ascii=False, default=str)
+
+
+def findings_csv(findings: list[Any]) -> str:
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=["title", "severity", "confidence", "file", "line", "type", "description"], extrasaction="ignore")
+    writer.writeheader()
+    for finding in findings:
+        writer.writerow({
+            "title": finding_text(finding, "title", finding_text(finding, "name", "Finding")),
+            "severity": finding_text(finding, "severity", "review"),
+            "confidence": finding_text(finding, "confidence", "review"),
+            "file": get_value(finding, "file", "path", default="") or "",
+            "line": get_value(finding, "line", default="") or "",
+            "type": finding_text(finding, "type", ""),
+            "description": finding_text(finding, "description", finding_text(finding, "message", "")),
+        })
+    return output.getvalue()
 
 
 def hash_password(password: str, salt: bytes | None = None) -> tuple[str, str]:
@@ -132,10 +216,14 @@ def run_analyzer(repo_url: str, status: Any) -> Any:
             "and install its dependencies before analyzing a repository."
         ) from ANALYZER_IMPORT_ERROR
 
-    candidates = [
-        getattr(analyzer, name, None)
-        for name in ("analyze_repository", "analyze", "run_analysis", "run")
-    ]
+    configured_token = configured_github_token()
+    if configured_token and callable(getattr(analyzer, "RepoAnalyzer", None)):
+        candidates = [get_token_analyzer(configured_token).analyze]
+    else:
+        candidates = [
+            getattr(analyzer, name, None)
+            for name in ("analyze_repository", "analyze", "run_analysis", "run")
+        ]
     function = next((item for item in candidates if callable(item)), None)
     if function is None:
         raise RuntimeError(
@@ -163,6 +251,15 @@ def run_analyzer(repo_url: str, status: Any) -> Any:
     except (TypeError, ValueError):
         result = function(repo_url)
     return result
+
+
+def run_comparison(repo_a: str, repo_b: str) -> Any:
+    """Compare two repositories through the analyzer's bounded cached flow."""
+    if analyzer is None or not callable(getattr(analyzer, "RepoAnalyzer", None)):
+        raise RuntimeError("The analyzer module is unavailable.") from ANALYZER_IMPORT_ERROR
+    token = configured_github_token()
+    comparison_analyzer = get_token_analyzer(token) if token else analyzer.RepoAnalyzer()
+    return comparison_analyzer.compare(repo_a.strip(), repo_b.strip())
 
 
 def score_color(score: Any) -> str:
@@ -215,6 +312,7 @@ def render_landing() -> None:
                 status.write("Validating repository input")
                 result = run_analyzer(st.session_state.repo_url, status)
                 st.session_state.result = result
+                remember_analysis(st.session_state.repo_url, result)
                 status.update(label="Analysis complete", state="complete", expanded=False)
             except Exception as exc:  # analyzer errors belong in the app, not a traceback
                 status.update(label="Analysis failed", state="error", expanded=True)
@@ -222,6 +320,65 @@ def render_landing() -> None:
                 st.caption("Check the repository URL and the analyzer installation, then try again.")
                 return
         st.rerun()
+
+    st.space("medium")
+    with st.container(border=True):
+        st.subheader("Compare two repositories", anchor=False)
+        st.caption("Compare bounded file trees, dependency declarations, languages, and health signals.")
+        with st.form("compare_form", clear_on_submit=False):
+            compare_cols = st.columns(2)
+            with compare_cols[0]:
+                first_url = st.text_input("First repository", placeholder="https://github.com/org/repository", key="compare_first_url")
+            with compare_cols[1]:
+                second_url = st.text_input("Second repository", placeholder="https://github.com/org/repository", key="compare_second_url")
+            compare_submitted = st.form_submit_button("Compare repositories", type="secondary", width="stretch", icon=":material/compare_arrows:")
+        if compare_submitted:
+            if not first_url.strip() or not second_url.strip():
+                st.error("Enter both GitHub repository URLs to compare.")
+            else:
+                try:
+                    with st.spinner("Comparing repository signals..."):
+                        comparison = run_comparison(first_url, second_url)
+                    st.session_state.compare_result = comparison
+                except Exception as exc:
+                    st.error(f"{type(exc).__name__}: {exc}")
+        comparison = st.session_state.get("compare_result")
+        if comparison:
+            render_comparison(comparison)
+
+
+def render_comparison(comparison: Any) -> None:
+    """Render a compact, actionable repository comparison."""
+    summary = comparison.get("summary", {}) if isinstance(comparison, dict) else {}
+    health = comparison.get("health", {}) if isinstance(comparison, dict) else {}
+    repositories = comparison.get("repositories", ["Repository A", "Repository B"]) if isinstance(comparison, dict) else []
+    st.markdown("#### Comparison result")
+    metric_cols = st.columns(4)
+    metrics = [
+        ("Files added", summary.get("files_added", 0)),
+        ("Files removed", summary.get("files_removed", 0)),
+        ("Files modified", summary.get("files_modified", 0)),
+        ("Health delta", f"{health.get('delta', 0):+}") if isinstance(health.get("delta", 0), (int, float)) else ("Health delta", health.get("delta", "—")),
+    ]
+    for col, (label, value) in zip(metric_cols, metrics):
+        with col:
+            st.metric(label, value, border=True)
+    st.caption(f"Before: `{repositories[0] if repositories else '—'}` · After: `{repositories[1] if len(repositories) > 1 else '—'}`")
+    detail_cols = st.columns(3)
+    details = [
+        ("Added files", comparison.get("added_files", [])),
+        ("Removed files", comparison.get("removed_files", [])),
+        ("Modified files", comparison.get("modified_files", [])),
+    ]
+    for col, (title, items) in zip(detail_cols, details):
+        with col:
+            st.markdown(f"**{title}**")
+            st.code("\n".join(items) if items else "None", language="text")
+    dependency_changes = comparison.get("dependency_changes", {})
+    with st.expander("Dependency changes", icon=":material/package_2:"):
+        st.write("Added:", ", ".join(dependency_changes.get("added", [])) or "None")
+        st.write("Removed:", ", ".join(dependency_changes.get("removed", [])) or "None")
+    st.download_button("Download comparison JSON", json.dumps(comparison, indent=2, default=str), file_name="repopilot-comparison.json", mime="application/json", icon=":material/download:", width="stretch")
 
 
 def render_dashboard(result: Any, repo_url: str) -> None:
@@ -279,9 +436,28 @@ def render_dashboard(result: Any, repo_url: str) -> None:
                     st.caption(str(explanation))
 
     st.subheader("Fix first", anchor=False)
+    filter_cols = st.columns(3)
+    severities = sorted({finding_text(item, "severity", "review").capitalize() for item in findings}) or ["Review"]
+    confidences = sorted({finding_text(item, "confidence", "review").capitalize() for item in findings}) or ["Review"]
+    file_types = sorted({Path(str(get_value(item, "file", "path", default=""))).suffix.lower().lstrip(".") or "general" for item in findings}) or ["general"]
+    with filter_cols[0]:
+        selected_severities = st.multiselect("Severity", severities, default=severities, key="finding_severity_filter")
+    with filter_cols[1]:
+        selected_confidences = st.multiselect("Confidence", confidences, default=confidences, key="finding_confidence_filter")
+    with filter_cols[2]:
+        selected_file_types = st.multiselect("File type", file_types, default=file_types, key="finding_file_filter")
+    filtered_findings = [
+        item for item in findings
+        if finding_text(item, "severity", "review").capitalize() in selected_severities
+        and finding_text(item, "confidence", "review").capitalize() in selected_confidences
+        and (Path(str(get_value(item, "file", "path", default=""))).suffix.lower().lstrip(".") or "general") in selected_file_types
+    ]
+    st.caption(f"Showing {len(filtered_findings)} of {len(findings)} findings")
+    if not filtered_findings:
+        st.info("No findings match the selected filters.", icon=":material/filter_alt_off:")
     if not findings:
         st.success("No findings were returned by the analyzer.", icon=":material/check_circle:")
-    for index, finding in enumerate(findings, 1):
+    for index, finding in enumerate(filtered_findings, 1):
         title = finding_text(finding, "title", finding_text(finding, "name", f"Finding {index}"))
         severity = finding_text(finding, "severity", finding_text(finding, "confidence", "review"))
         with st.container(border=True):
@@ -315,18 +491,33 @@ def render_dashboard(result: Any, repo_url: str) -> None:
         st.json(tree, expanded=False)
 
     report = make_report(result, repo_url)
-    st.download_button("Download markdown report", report, file_name="repopilot-report.md", mime="text/markdown", icon=":material/download:", type="secondary")
+    export_cols = st.columns(3)
+    with export_cols[0]:
+        st.download_button("Download Markdown", report, file_name="repopilot-report.md", mime="text/markdown", icon=":material/description:", type="secondary", width="stretch")
+    with export_cols[1]:
+        st.download_button("Download JSON", json_text(result), file_name="repopilot-report.json", mime="application/json", icon=":material/data_object:", type="secondary", width="stretch")
+    with export_cols[2]:
+        st.download_button("Download findings CSV", findings_csv(filtered_findings), file_name="repopilot-findings.csv", mime="text/csv", icon=":material/table_chart:", type="secondary", width="stretch")
 
 
 st.set_page_config(page_title="RepoPilot", page_icon=":material/terminal:", layout="wide", initial_sidebar_state="collapsed")
-inject_styles()
 
 if "result" not in st.session_state:
     st.session_state.result = None
+if "compare_result" not in st.session_state:
+    st.session_state.compare_result = None
 if "repo_url" not in st.session_state:
     st.session_state.repo_url = ""
 if "auth_user" not in st.session_state:
     st.session_state.auth_user = None
+if "history" not in st.session_state:
+    st.session_state.history = []
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "light"
+if "dark_theme_toggle" not in st.session_state:
+    st.session_state.dark_theme_toggle = False
+
+inject_styles()
 
 if not render_auth():
     st.stop()
@@ -340,6 +531,24 @@ with st.sidebar:
         st.session_state.result = None
         st.session_state.repo_url = ""
         st.rerun()
+    st.toggle("Dark theme", key="dark_theme_toggle", on_change=lambda: st.session_state.update(theme_mode="dark" if st.session_state.dark_theme_toggle else "light"))
+    with st.expander("GitHub token settings", icon=":material/key:"):
+        if configured_github_token():
+            st.success("Token loaded securely from Streamlit secrets or GITHUB_TOKEN.", icon=":material/lock:")
+        else:
+            st.caption("Optional. Add github_token to .streamlit/secrets.toml or set GITHUB_TOKEN in the environment. The token is never shown or included in exports.")
+        st.code('github_token = "..."', language="toml")
+        st.caption("For Streamlit secrets, use github_token = \"...\" at the top level. Restart the app after changing secrets.")
+    if st.session_state.history:
+        st.markdown("### Scan history")
+        history_labels = [f"{item['repo_url']} · {item['saved_at'][:16].replace('T', ' ')} UTC" for item in st.session_state.history]
+        selected_history = st.selectbox("Saved scans", history_labels, key="history_selection", label_visibility="collapsed")
+        selected_index = history_labels.index(selected_history)
+        if st.button("Reopen scan", icon=":material/history:", width="stretch"):
+            saved = st.session_state.history[selected_index]
+            st.session_state.repo_url = saved["repo_url"]
+            st.session_state.result = saved["result"]
+            st.rerun()
     if st.button("Log out", icon=":material/logout:", width="stretch"):
         st.session_state.auth_user = None
         st.session_state.result = None

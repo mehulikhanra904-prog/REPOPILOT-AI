@@ -5,15 +5,22 @@ The analyzer only reads GitHub's REST API. It never checks out or executes code.
 from __future__ import annotations
 
 import base64
+import copy
 import io
 import json
 import os
 import re
+import time
 import zipfile
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 compatibility
+    tomllib = None
 
 
 class GitHubAPIError(RuntimeError):
@@ -125,6 +132,84 @@ def _languages_from_paths(paths: Iterable[str]) -> Dict[str, int]:
     return counts
 
 
+def _dependency_insights(files: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Extract declared dependencies without claiming vulnerability status."""
+    items: List[Dict[str, Any]] = []
+    manifests: List[str] = []
+
+    def add(name: str, spec: Any, ecosystem: str, manifest: str, group: str = "runtime") -> None:
+        name = str(name).strip()
+        if name:
+            items.append({"name": name, "spec": str(spec or "*"), "ecosystem": ecosystem,
+                          "manifest": manifest, "group": group})
+
+    for item in files:
+        path, content = item.get("path", ""), item.get("content")
+        if not isinstance(content, str):
+            continue
+        basename = os.path.basename(path).lower()
+        if basename == "package.json":
+            try:
+                payload = json.loads(content)
+            except (TypeError, ValueError):
+                continue
+            manifests.append(path)
+            for group in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+                values = payload.get(group) or {}
+                if not isinstance(values, dict):
+                    continue
+                for name, spec in values.items():
+                    add(name, spec, "npm", path, "development" if group == "devDependencies" else "runtime")
+        elif basename in {"requirements.txt", "requirements-dev.txt", "requirements.lock"}:
+            manifests.append(path)
+            for line in content.splitlines():
+                line = line.split("#", 1)[0].strip()
+                if not line or line.startswith(("-", "git+", "http:", "https:")):
+                    continue
+                match = re.match(r"^([A-Za-z0-9_.-]+)\s*(.*)$", line)
+                if match:
+                    add(match.group(1), match.group(2).strip() or "*", "PyPI", path)
+        elif basename == "pyproject.toml" and tomllib is not None:
+            try:
+                payload = tomllib.loads(content)
+            except (tomllib.TOMLDecodeError, ValueError):
+                continue
+            dependencies = payload.get("project", {}).get("dependencies", [])
+            for dependency in dependencies:
+                match = re.match(r"^([A-Za-z0-9_.-]+)\s*(.*)$", str(dependency))
+                if match:
+                    add(match.group(1), match.group(2).strip() or "*", "PyPI", path)
+            for name, spec in (payload.get("tool", {}).get("poetry", {}).get("dependencies", {}) or {}).items():
+                if name.lower() != "python":
+                    add(name, spec if isinstance(spec, str) else json.dumps(spec, sort_keys=True), "PyPI", path)
+            manifests.append(path)
+        elif basename == "cargo.toml" and tomllib is not None:
+            try:
+                payload = tomllib.loads(content)
+            except (tomllib.TOMLDecodeError, ValueError):
+                continue
+            # TOML tables use dotted keys in the parsed representation.
+            for group in ("dependencies", "dev-dependencies", "build-dependencies"):
+                for name, spec in (payload.get(group, {}) or {}).items():
+                    add(name, spec if isinstance(spec, str) else json.dumps(spec, sort_keys=True), "crates.io", path, group)
+            manifests.append(path)
+        elif basename == "go.mod":
+            requires = False
+            for line in content.splitlines():
+                match = re.match(r"^\s*(?:require\s+)?([^\s]+)\s+(v[^\s]+)", line)
+                if match and match.group(1) not in {"module", "go"}:
+                    add(match.group(1), match.group(2), "Go", path)
+                    requires = True
+            if requires:
+                manifests.append(path)
+
+    unique = {(entry["ecosystem"], entry["name"], entry["manifest"], entry["group"]): entry for entry in items}
+    items = sorted(unique.values(), key=lambda entry: (entry["ecosystem"], entry["name"].lower()))
+    ecosystems = sorted({entry["ecosystem"] for entry in items})
+    return {"manifests": sorted(set(manifests)), "items": items, "count": len(items), "ecosystems": ecosystems,
+            "limitation": "Declared dependencies are listed for orientation; no vulnerability or freshness claim is made."}
+
+
 def _result_from_files(repository_url: str, metadata: Dict[str, Any], files: List[Dict[str, Any]], languages: Dict[str, int], *, tree_truncated: bool, source_note: str = "") -> Dict[str, Any]:
     paths = {f["path"] for f in files}
     lower = {p.lower() for p in paths}
@@ -134,6 +219,11 @@ def _result_from_files(repository_url: str, metadata: Dict[str, Any], files: Lis
     configs = sorted(p for p in paths if os.path.basename(p).lower() in {"pyproject.toml", "package.json", "cargo.toml", "go.mod", "dockerfile", ".editorconfig"} or p.lower() in {".github/workflows/ci.yml", ".github/workflows/ci.yaml"})
     checks = {"readme": docs["readme"], "license": docs["license"], "tests": bool(tests), "config": bool(configs), "source": any(not _is_maintenance_file(p) for p in paths)}
     findings = [finding for item in files for finding in item.get("findings", [])]
+    dependencies = _dependency_insights(files)
+    if dependencies["count"] == 0:
+        findings.append(_finding("dependencies", "No dependency manifest detected", "", None, "low",
+                                 "No supported dependency manifest was found in the inspected files.",
+                                 dependencies["limitation"]))
     if not docs["readme"]:
         findings.append(_finding("documentation", "README is missing", "", None, "high", "No README file in bounded tree."))
     if not tests:
@@ -145,6 +235,7 @@ def _result_from_files(repository_url: str, metadata: Dict[str, Any], files: Lis
             "limits": {"max_files": 200, "max_file_bytes": 100_000, "files_seen": len(files), "tree_truncated": tree_truncated},
             "files": [{k: v for k, v in item.items() if k != "findings"} for item in files], "architecture": _architecture(paths), "languages": dict(sorted(languages.items())), "frameworks": frameworks,
             "documentation": docs, "tests": {"files": tests, "found": bool(tests)}, "configs": configs,
+            "dependencies": dependencies,
             "secret_findings": [f for f in findings if f["type"] == "secret"], "health": _score(checks), "findings": findings,
             "phases": ["Repository validated", "File structure retrieved", "Project signals detected", "Evidence verified", "Findings prioritized"],
             "methodology": {"Overall health": "Weighted indicator: README 20, license 10, recognized tests 25, project configuration 15, and source files 30. This is not a claim of software quality."},
@@ -152,25 +243,36 @@ def _result_from_files(repository_url: str, metadata: Dict[str, Any], files: Lis
 
 
 class RepoAnalyzer:
-    def __init__(self, *, max_files: int = 200, max_file_bytes: int = 100_000, timeout: float = 15, token: Optional[str] = None):
+    def __init__(self, *, max_files: int = 200, max_file_bytes: int = 100_000, timeout: float = 15,
+                 token: Optional[str] = None, cache_ttl: float = 300):
         self.max_files, self.max_file_bytes = max_files, max_file_bytes
         self.api = _GitHub(token, timeout)
+        self.cache_ttl = max(0, cache_ttl)
+        self._analysis_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 
-    def analyze(self, repository_url: str) -> Dict[str, Any]:
+    def analyze(self, repository_url: str, *, force_refresh: bool = False) -> Dict[str, Any]:
         owner, repo = validate_github_url(repository_url)
+        cache_key = repository_url.strip().rstrip("/").lower()
+        cached = self._analysis_cache.get(cache_key)
+        if not force_refresh and self.cache_ttl > 0 and cached and time.monotonic() - cached[0] < self.cache_ttl:
+            return copy.deepcopy(cached[1])
         base = f"/repos/{owner}/{repo}"
         try:
             metadata = self.api.get(base)
         except GitHubAPIError as exc:
             if "rate limit exceeded" in str(exc).lower():
-                return self._analyze_archive(owner, repo, repository_url)
+                result = self._analyze_archive(owner, repo, repository_url)
+                self._analysis_cache[cache_key] = (time.monotonic(), result)
+                return copy.deepcopy(result)
             raise
         branch = metadata.get("default_branch") or "main"
         try:
             tree = self.api.get(base + f"/git/trees/{quote(branch, safe='')}?recursive=1")
         except GitHubAPIError as exc:
             if "rate limit exceeded" in str(exc).lower():
-                return self._analyze_archive(owner, repo, repository_url, branch=branch)
+                result = self._analyze_archive(owner, repo, repository_url, branch=branch)
+                self._analysis_cache[cache_key] = (time.monotonic(), result)
+                return copy.deepcopy(result)
             raise
         entries = sorted((e for e in tree.get("tree", []) if e.get("type") == "blob"), key=lambda e: e.get("path", ""))[: self.max_files]
         files: List[Dict[str, Any]] = []
@@ -198,7 +300,7 @@ class RepoAnalyzer:
             # conservative language map from the files already inspected.
             languages = _languages_from_paths([item["path"] for item in files])
             source_note = "GitHub API rate limit reached for language metadata; language counts are inferred from inspected file extensions."
-        return _result_from_files(
+        result = _result_from_files(
             repository_url,
             metadata,
             files,
@@ -206,6 +308,29 @@ class RepoAnalyzer:
             tree_truncated=len(tree.get("tree", [])) > self.max_files,
             source_note=source_note,
         )
+        self._analysis_cache[cache_key] = (time.monotonic(), result)
+        return copy.deepcopy(result)
+
+    def compare(self, repository_url: str, other_repository_url: str, *, force_refresh: bool = False) -> Dict[str, Any]:
+        """Compare two repository snapshots using the same bounded analyzer."""
+        left, right = self.analyze(repository_url, force_refresh=force_refresh), self.analyze(other_repository_url, force_refresh=force_refresh)
+        left_files = {item["path"]: item for item in left.get("files", [])}
+        right_files = {item["path"]: item for item in right.get("files", [])}
+        added = sorted(set(right_files) - set(left_files))
+        removed = sorted(set(left_files) - set(right_files))
+        modified = sorted(path for path in set(left_files) & set(right_files)
+                          if left_files[path].get("content") != right_files[path].get("content")
+                          or left_files[path].get("size") != right_files[path].get("size"))
+        def dependency_names(result: Dict[str, Any]) -> set[str]:
+            return {item["name"] for item in result.get("dependencies", {}).get("items", [])}
+        left_deps, right_deps = dependency_names(left), dependency_names(right)
+        return {"repositories": [repository_url, other_repository_url],
+                "added_files": added, "removed_files": removed, "modified_files": modified,
+                "dependency_changes": {"added": sorted(right_deps - left_deps), "removed": sorted(left_deps - right_deps)},
+                "health": {"before": left.get("health", {}).get("score"), "after": right.get("health", {}).get("score"),
+                           "delta": (right.get("health", {}).get("score", 0) - left.get("health", {}).get("score", 0))},
+                "language_changes": {"before": left.get("languages", {}), "after": right.get("languages", {})},
+                "summary": {"files_added": len(added), "files_removed": len(removed), "files_modified": len(modified)}}
 
     def _analyze_archive(self, owner: str, repo: str, repository_url: str, *, branch: str = "main") -> Dict[str, Any]:
         """Fallback for anonymous API rate limits using GitHub's public archive endpoint."""
@@ -277,3 +402,8 @@ def to_markdown(result: Dict[str, Any]) -> str:
 
 
 analyze_repository = RepoAnalyzer().analyze
+
+
+def compare_repositories(repository_url: str, other_repository_url: str, *, force_refresh: bool = False) -> Dict[str, Any]:
+    """Convenience comparison API while retaining the legacy analyzer function."""
+    return RepoAnalyzer().compare(repository_url, other_repository_url, force_refresh=force_refresh)

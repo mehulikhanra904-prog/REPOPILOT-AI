@@ -29,6 +29,12 @@ else:
 
 ROOT = Path(__file__).parent
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+DEMO_REPOSITORIES = [
+    ("Streamlit", "https://github.com/streamlit/streamlit", "Python · app framework"),
+    ("FastAPI", "https://github.com/fastapi/fastapi", "Python · API framework"),
+    ("React", "https://github.com/facebook/react", "JavaScript · UI library"),
+    ("Next.js", "https://github.com/vercel/next.js", "JavaScript · web framework"),
+]
 
 
 @st.cache_resource(show_spinner=False)
@@ -262,6 +268,25 @@ def run_comparison(repo_a: str, repo_b: str) -> Any:
     return comparison_analyzer.compare(repo_a.strip(), repo_b.strip())
 
 
+def analyze_and_store(repo_url: str) -> None:
+    """Run a scan from any entry point and store it for the dashboard/history."""
+    st.session_state.repo_url = repo_url.strip()
+    st.session_state.result = None
+    with st.status("Preparing analysis", expanded=True) as status:
+        try:
+            status.write("Validating repository input")
+            result = run_analyzer(st.session_state.repo_url, status)
+            st.session_state.result = result
+            remember_analysis(st.session_state.repo_url, result)
+            status.update(label="Analysis complete", state="complete", expanded=False)
+        except Exception as exc:
+            status.update(label="Analysis failed", state="error", expanded=True)
+            st.error(f"{type(exc).__name__}: {exc}")
+            st.caption("Check the repository URL and the analyzer installation, then try again.")
+            return
+    st.rerun()
+
+
 def score_color(score: Any) -> str:
     try:
         numeric = float(score)
@@ -305,21 +330,16 @@ def render_landing() -> None:
         if not url.strip():
             st.error("Enter a GitHub repository URL to begin.")
             return
-        st.session_state.repo_url = url.strip()
-        st.session_state.result = None
-        with st.status("Preparing analysis", expanded=True) as status:
-            try:
-                status.write("Validating repository input")
-                result = run_analyzer(st.session_state.repo_url, status)
-                st.session_state.result = result
-                remember_analysis(st.session_state.repo_url, result)
-                status.update(label="Analysis complete", state="complete", expanded=False)
-            except Exception as exc:  # analyzer errors belong in the app, not a traceback
-                status.update(label="Analysis failed", state="error", expanded=True)
-                st.error(f"{type(exc).__name__}: {exc}")
-                st.caption("Check the repository URL and the analyzer installation, then try again.")
-                return
-        st.rerun()
+        analyze_and_store(url)
+
+    st.space("small")
+    st.markdown('<div class="landing-section-label">Try a demo repository</div>', unsafe_allow_html=True)
+    preset_cols = st.columns(4)
+    for col, (name, preset_url, description) in zip(preset_cols, DEMO_REPOSITORIES):
+        with col:
+            if st.button(name, key=f"demo_{name.lower()}", icon=":material/rocket_launch:", width="stretch"):
+                analyze_and_store(preset_url)
+            st.caption(description)
 
     st.space("medium")
     with st.container(border=True):

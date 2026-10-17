@@ -56,6 +56,7 @@ The analyzer is read-only: it does not clone, execute, or modify the submitted r
 | **Finding filters** | Filter findings by severity, confidence, and file type. |
 | **Secure token settings** | Load an optional GitHub token from Streamlit secrets or `GITHUB_TOKEN` without displaying it. |
 | **Theme toggle** | Switch between polished light and dark UI themes. |
+| **Demo repository presets** | Launch one-click scans for Streamlit, FastAPI, React, and Next.js. |
 | **Rate-limit fallback** | Uses GitHub’s public source archive when anonymous API limits are reached. |
 | **Local demo auth** | Includes a session-only sign-in/create-account gate for the local Streamlit experience. |
 

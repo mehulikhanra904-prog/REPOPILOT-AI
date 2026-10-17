@@ -56,7 +56,7 @@ class _GitHub:
             with urlopen(request, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            detail = "rate limit exceeded" if exc.code == 403 else f"HTTP {exc.code}"
+            detail = "rate limit exceeded" if exc.code in {403, 429} else f"HTTP {exc.code}"
             if exc.code == 404:
                 detail = "repository not found or is not public"
             raise GitHubAPIError(f"GitHub API error: {detail}") from exc

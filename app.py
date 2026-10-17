@@ -50,15 +50,21 @@ def inject_styles() -> None:
         if st.session_state.get("theme_mode") == "dark":
             css += """
             <style>
-            :root { --rp-ink:#e7f0ed; --rp-muted:#a9bbb5; --rp-faint:#82958f; --rp-paper:#101a1b; --rp-panel:rgba(25,41,42,.92); --rp-panel-strong:#19292a; --rp-line:rgba(220,240,232,.14); --rp-line-strong:rgba(220,240,232,.24); }
+            :root { --rp-ink:#f0ebff; --rp-muted:#b9afd2; --rp-faint:#8e83a9; --rp-paper:#171326; --rp-panel:rgba(38,29,62,.82); --rp-panel-strong:#261d3e; --rp-line:rgba(221,207,255,.16); --rp-line-strong:rgba(221,207,255,.28); --rp-purple:#b39aff; --rp-shadow:0 20px 60px rgba(4,2,14,.32); }
             html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stAppViewContainer"] > .main { background:var(--rp-paper) !important; color:var(--rp-ink); }
-            [data-testid="stAppViewContainer"]::before { opacity:.24; }
+            [data-testid="stAppViewContainer"]::before { opacity:.18; }
+            [data-testid="stAppViewContainer"]::after { opacity:.14; }
             h1,h2,h3,p,strong,[data-testid="stMetricValue"] { color:var(--rp-ink) !important; }
             p,.hero-lede,.auth-lede { color:#b7c9c2; }
             [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stMetric"], [data-testid="stForm"], [data-testid="stTextInput"] input, [data-testid="stMultiSelect"] > div, [data-testid="stSelectbox"] > div { background:var(--rp-panel) !important; color:var(--rp-ink); }
             [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea { color:var(--rp-ink); }
-            button[kind="secondary"] { background:#203536; color:#e6f3ed; }
-            button[kind="secondary"]:hover { background:#2c4848; color:#fff; }
+            [data-testid="stSidebar"] { background:linear-gradient(180deg, rgba(42,32,68,.92), rgba(28,21,47,.94)); border-color:rgba(221,207,255,.14); }
+            [data-testid="stSidebar"] [data-testid="stMarkdownContainer"], [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] small { color:#d8cff0; }
+            .brand-lockup strong, .sidebar-status strong, .sidebar-current strong { color:#f0ebff; }
+            .brand-lockup span, .sidebar-status small, .sidebar-current small, .sidebar-current span { color:#aaa0c8; }
+            button[kind="secondary"] { background:#30254c; color:#eee8ff; }
+            button[kind="secondary"]:hover { background:#413262; color:#fff; }
+            button[kind="primary"] { background:linear-gradient(135deg,#9a7bf0,#6f51ca); color:#fff; }
             pre { background:rgba(255,255,255,.06) !important; }
             </style>
             """
